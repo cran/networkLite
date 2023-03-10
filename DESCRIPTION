@@ -1,6 +1,6 @@
 Package: networkLite
-Version: 1.0.1
-Date: 2023-01-25
+Version: 1.0.5
+Date: 2023-03-10
 Title: An Simplified Implementation of the 'network' Package
         Functionality
 Description: An implementation of some of the core 'network' package functionality based on a 
@@ -30,7 +30,7 @@ Suggests: testthat
 RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2023-01-25 15:14:49 UTC; sjennes
+Packaged: 2023-03-10 14:35:45 UTC; sjennes
 Author: Samuel Jenness [cre, aut],
   Steven M. Goodreau [aut],
   Martina Morris [aut],
@@ -38,4 +38,4 @@ Author: Samuel Jenness [cre, aut],
   Chad Klumb [aut],
   Skye Bender-deMoll [ctb]
 Repository: CRAN
-Date/Publication: 2023-01-25 15:50:02 UTC
+Date/Publication: 2023-03-10 16:20:02 UTC
