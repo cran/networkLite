@@ -49,7 +49,7 @@
 #' @export
 #'
 get.vertex.attribute.networkLite <- function(x, attrname, ..., null.na = TRUE, unlist = TRUE) {
-  if (!(attrname %in% list.vertex.attributes(x))) {
+  if (is.null(out <- unclass(x$attr)[[attrname]])) {
     ## special case handling relevant to netsim efficiency
     if (null.na == TRUE && unlist == TRUE) {
       return(rep(NA, length.out = network.size(x)))
@@ -61,8 +61,6 @@ get.vertex.attribute.networkLite <- function(x, attrname, ..., null.na = TRUE, u
       return(vector(mode = "list", length = network.size(x)))
     }
   }
-
-  out <- x$attr[[attrname]]
 
   if (null.na == TRUE && is.list(out)) {
     out <- lapply(out, function(val) if (!is.null(val)) val else NA)
@@ -86,8 +84,6 @@ set.vertex.attribute.networkLite <- function(x,
                                              v = seq_len(network.size(x)),
                                              ...,
                                              upcast = FALSE) {
-  xn <- substitute(x)
-
   if (missing(v)) {
     ## just set everything
     x$attr[[attrname]] <- rep(value, length.out = network.size(x))
@@ -102,8 +98,7 @@ set.vertex.attribute.networkLite <- function(x,
     x$attr[[attrname]][v] <- value
   }
 
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
@@ -135,12 +130,9 @@ get.network.attribute.networkLite <- function(x, attrname, ..., unlist = FALSE) 
 #' @export
 #'
 set.network.attribute.networkLite <- function(x, attrname, value, ...) {
-  xn <- substitute(x)
-
   x$gal[[attrname]] <- value
 
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
@@ -154,7 +146,7 @@ list.network.attributes.networkLite <- function(x, ...) {
 #' @export
 #'
 get.edge.attribute.networkLite <- function(x, attrname, ..., null.na = FALSE, unlist = TRUE) {
-  if (!(attrname %in% list.edge.attributes(x))) {
+  if (is.null(out <- unclass(x$el)[[attrname]])) {
     ## special case handling consistent as for vertex attributes
     if (null.na == TRUE && unlist == TRUE) {
       return(rep(NA, length.out = network.edgecount(x, na.omit = FALSE)))
@@ -166,8 +158,6 @@ get.edge.attribute.networkLite <- function(x, attrname, ..., null.na = FALSE, un
       return(vector(mode = "list", length = network.edgecount(x, na.omit = FALSE)))
     }
   }
-
-  out <- x$el[[attrname]]
 
   if (null.na == TRUE && is.list(out)) {
     out <- lapply(out, function(val) if (!is.null(val)) val else NA)
@@ -194,8 +184,6 @@ set.edge.attribute.networkLite <- function(
     x, attrname, value,
     e = seq_len(network.edgecount(x, na.omit = FALSE)), ..., upcast = FALSE) {
 
-  xn <- substitute(x)
-
   if (missing(e)) {
     ## just set everything
     x$el[[attrname]] <- rep(value, length.out = network.edgecount(x, na.omit = FALSE))
@@ -210,8 +198,7 @@ set.edge.attribute.networkLite <- function(
     x$el[[attrname]][e] <- value
   }
 
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
@@ -220,8 +207,6 @@ set.edge.attribute.networkLite <- function(
 set.edge.value.networkLite <- function(
     x, attrname, value,
     e = seq_len(network.edgecount(x, na.omit = FALSE)), ..., upcast = FALSE) {
-
-  xn <- substitute(x)
 
   value <- value[cbind(x$el$.tail[e], x$el$.head[e])]
 
@@ -239,8 +224,7 @@ set.edge.value.networkLite <- function(
     x$el[[attrname]][e] <- value
   }
 
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
@@ -258,32 +242,26 @@ list.edge.attributes.networkLite <- function(x, ...) {
 #' @rdname attribute_methods
 #' @export
 delete.vertex.attribute.networkLite <- function(x, attrname, ...) {
-  xn <- substitute(x)
+  ## TODO: See if this can be done in one operation faster.
+  for (a in attrname) x$attr[[a]] <- NULL
 
-  x$attr[[attrname]] <- NULL
-
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
 #' @export
 delete.edge.attribute.networkLite <- function(x, attrname, ...) {
-  xn <- substitute(x)
+  ## TODO: See if this can be done in one operation faster.
+  for (a in attrname) x$el[[a]] <- NULL
 
-  x$el[[attrname]] <- NULL
-
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }
 
 #' @rdname attribute_methods
 #' @export
 delete.network.attribute.networkLite <- function(x, attrname, ...) {
-  xn <- substitute(x)
+  ## TODO: See if this can be done in one operation faster.
+  for (a in attrname) x$gal[[a]] <- NULL
 
-  x$gal[[attrname]] <- NULL
-
-  on.exit(eval.parent(call("<-", xn, x)))
-  invisible(x)
+  modify_in_place(x)
 }

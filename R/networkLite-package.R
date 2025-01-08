@@ -4,8 +4,8 @@
 #' \tabular{ll}{
 #'    Package: \tab networkLite\cr
 #'    Type: \tab Package\cr
-#'    Version: \tab 1.0.5\cr
-#'    Date: \tab 2023-03-10\cr
+#'    Version: \tab 1.1.0\cr
+#'    Date: \tab 2025-01-08\cr
 #'    License: \tab GPL-3\cr
 #'    LazyLoad: \tab yes\cr
 #' }
@@ -54,7 +54,7 @@
 #' @name networkLite-package
 #'
 #' @import network
-#' @importFrom statnet.common NVL NVL2
+#' @importFrom statnet.common NVL NVL2 attr modify_in_place
 #' @importFrom tibble tibble as_tibble is_tibble
 #' @importFrom dplyr bind_rows bind_cols
 #' @importFrom stats na.omit

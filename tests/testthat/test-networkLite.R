@@ -1,5 +1,9 @@
+library(tibble)
+
 ## test two networks or networkLites for equivalent attributes, edges, etc.
 ## note that atomic type upcasting in as.networkLite can create comparison issues
+order_cols <- function(df) df[, sort(names(df))]
+
 expect_equiv_nets <- function(nw1, nw2, skip.mnext = FALSE) {
   if ((is(nw1, "networkLite") && is(nw2, "networkLite")) ||
       (!is(nw1, "networkLite") && !is(nw2, "networkLite"))) {
@@ -99,8 +103,10 @@ test_that("net_attr overrides attributes(x)", {
   nw <- network.initialize(10, directed = FALSE)
   nw[3,7] <- 1
   el <- as.edgelist(nw)
-  expect_error(nwL <- networkLite(el, net_attr = list(newattr = "val")),
-               "non-negative integer")
+  expect_warning(
+    expect_error(nwL <- networkLite(el, net_attr = list(newattr = "val")),
+                 "non-negative integer"),
+    "first element used of 'length.out' argument")
   nwL <- networkLite(el, net_attr = list(n = 10, newattr = "val"))
   expect_equal(network.size(nwL), 10)
   expect_equal(get.network.attribute(nwL, "newattr"), "val")
@@ -307,10 +313,13 @@ test_that("setting vertex and edge attributes in strange ways", {
   set.vertex.attribute(nwL, "av2", letters[1:5])
   nwL <- atomize(nwL)
 
-  set.edge.attribute(nwL, "ae1", 1:2, c(1,2,4))
-  set.edge.attribute(nwL, "ae2", 1:3, c(3,1,4,2))
+  expect_warning(set.edge.attribute(nwL, "ae1", 1:2, c(1,2,4)),
+                 "number of items to replace is not a multiple of replacement length")
+  expect_warning(set.edge.attribute(nwL, "ae2", 1:3, c(3,1,4,2)),
+                 "number of items to replace is not a multiple of replacement length")
   set.vertex.attribute(nwL, "av1", letters[1:7])
-  set.vertex.attribute(nwL, "av2", c("1","2","3"), 1:2)
+  expect_warning(set.vertex.attribute(nwL, "av2", c("1","2","3"), 1:2),
+                 "number of items to replace is not a multiple of replacement length")
   
   expect_equiv_nets(nw, nwL)
 
@@ -319,10 +328,13 @@ test_that("setting vertex and edge attributes in strange ways", {
   set.vertex.attribute(nw, "av1", list(list(network.initialize(3)), 2, 3, "a", "b"))
   set.vertex.attribute(nw, "av2", list(list(network.initialize(3)), 2, 3, "a", "b"), 4:5)
   
-  set.edge.attribute(nwL, "ae1", list(list(1,2), list(3)), c(1,2,4))
-  set.edge.attribute(nwL, "ae2", list(list("a"), network.initialize(3), 1), c(3,1,4,2))
+  expect_warning(set.edge.attribute(nwL, "ae1", list(list(1,2), list(3)), c(1,2,4)),
+                 "number of items to replace is not a multiple of replacement length")
+  expect_warning(set.edge.attribute(nwL, "ae2", list(list("a"), network.initialize(3), 1), c(3,1,4,2)),
+                 "number of items to replace is not a multiple of replacement length")
   set.vertex.attribute(nwL, "av1", list(list(network.initialize(3)), 2, 3, "a", "b", "c"))
-  set.vertex.attribute(nwL, "av2", list(list(network.initialize(3)), 2, 3, "a", "b"), 4:5)
+  expect_warning(set.vertex.attribute(nwL, "av2", list(list(network.initialize(3)), 2, 3, "a", "b"), 4:5),
+                 "number of items to replace is not a multiple of replacement length")
 
   expect_equiv_nets(nw, nwL)
 
@@ -548,13 +560,11 @@ test_that("more tibble tests", {
   tbl <- as_tibble(nw, na.rm = FALSE)
   tbl <- tbl[order(tbl$.tail, tbl$.head),]
   class(tbl) <- c("edgelist", class(tbl))
-  attr(tbl, "n") <- network.size(nw)
   nwL <- networkLite(tbl)
   expect_error(expect_equiv_nets(nw, nwL))
   expect_equal(list.edge.attributes(nwL), c("na"))
 
   tbl <- as_tibble(nw, attrnames = "e1", na.rm = FALSE)
-  attr(tbl, "n") <- network.size(nw)
   tbl <- tbl[order(tbl$.tail, tbl$.head),]
   class(tbl) <- c("edgelist", class(tbl))
   nwL <- networkLite(tbl)
@@ -564,7 +574,6 @@ test_that("more tibble tests", {
   tbl <- as_tibble(nw, attrnames = c("e1", "e2"), na.rm = FALSE)
   tbl <- tbl[order(tbl$.tail, tbl$.head),]
   class(tbl) <- c("edgelist", class(tbl))
-  attr(tbl, "n") <- network.size(nw)
   nwL <- networkLite(tbl)
   expect_error(expect_equiv_nets(nw, nwL))
   expect_equal(list.edge.attributes(nwL), c("e1", "e2", "na"))
@@ -572,7 +581,6 @@ test_that("more tibble tests", {
   tbl <- as_tibble(nw, attrnames = c("e1", "e2", "na"), na.rm = FALSE)
   tbl <- tbl[order(tbl$.tail, tbl$.head),]
   class(tbl) <- c("edgelist", class(tbl))
-  attr(tbl, "n") <- network.size(nw)
   nwL <- networkLite(tbl)
   expect_equiv_nets(nw, nwL)
   expect_equal(list.edge.attributes(nwL), c("e1", "e2", "na"))
@@ -580,7 +588,6 @@ test_that("more tibble tests", {
   tbl <- as_tibble(nw, attrnames = c("e1", "e2", "na"), na.rm = TRUE)
   tbl <- tbl[order(tbl$.tail, tbl$.head),]
   class(tbl) <- c("edgelist", class(tbl))
-  attr(tbl, "n") <- network.size(nw)
   nwL <- networkLite(tbl)
   expect_error(expect_equiv_nets(nw, nwL))
   expect_equal(list.edge.attributes(nwL), c("e1", "e2", "na"))
@@ -658,31 +665,62 @@ test_that("network and networkLite produce identical matrices, edgelists, and ti
 
       set.seed(0)
       nw <- network(create_random_edgelist(net_size, directed, bipartite, edges_target), directed = directed, bipartite = bipartite, matrix.type = "edgelist")
-      nw %e% "eattr" <- runif(network.edgecount(nw))
+      nw %e% "attr" <- runif(network.edgecount(nw))
+      nw %v% "attr" <- runif(network.size(nw))
       nw %e% "na" <- sample(c(FALSE, TRUE), network.edgecount(nw), TRUE)
 
       set.seed(0)
       nwL <- networkLite(create_random_edgelist(net_size, directed, bipartite, edges_target))
-      set.edge.attribute(nwL, "eattr", runif(network.edgecount(nwL)))
+      set.edge.attribute(nwL, "attr", runif(network.edgecount(nwL)))
+      set.vertex.attribute(nwL, "attr", runif(network.size(nwL)))
       set.edge.attribute(nwL, "na", sample(c(FALSE, TRUE), network.edgecount(nwL), TRUE))
 
-      for(attrname in list(NULL, "eattr", "na")) {
+      for(attrname in list(NULL, "attr", "na", TRUE)) {
         for(na.rm in list(FALSE, TRUE)) {
-          for(matrix.type in c("adjacency", "incidence", "edgelist")) {
-            expect_identical(as.matrix(nw, matrix.type = matrix.type, attrname = attrname, na.rm = na.rm),
-                             as.matrix(nwL, matrix.type = matrix.type, attrname = attrname, na.rm = na.rm))
+          for(unit in c("edges", "vertices")){
+            expect_identical(order_cols(as_tibble(nw, attrname = attrname, na.rm = na.rm, unit = unit)),
+                             order_cols(as_tibble(nwL, attrname = attrname, na.rm = na.rm, unit = unit)))
           }
+
+          if(identical(attrname, TRUE)) next
+
+          for(matrix.type in c("adjacency", "incidence", "edgelist")) {
+              expect_identical(as.matrix(nw, matrix.type = matrix.type, attrname = attrname, na.rm = na.rm),
+                               as.matrix(nwL, matrix.type = matrix.type, attrname = attrname, na.rm = na.rm))
+          }
+
           expect_identical(as.edgelist(nw, attrname = attrname, na.rm = na.rm),
                            as.edgelist(nwL, attrname = attrname, na.rm = na.rm))
 
           expect_identical(as.edgelist(nw, attrname = attrname, na.rm = na.rm, output = "tibble"),
                            as.edgelist(nwL, attrname = attrname, na.rm = na.rm, output = "tibble"))
-
-          tbl <- tibble::as_tibble(nw, attrname = attrname, na.rm = na.rm)
-          attr(tbl, "n") <- network.size(nw)
-          expect_identical(tbl,
-                           tibble::as_tibble(nwL, attrname = attrname, na.rm = na.rm))
         }
+      }
+
+            n <- network.size(nw)
+      for(into_bipartite in c(FALSE, TRUE)){
+        if(is.bipartite(nw)){
+          if(into_bipartite){
+            b <- nw %n% "bipartite"
+            v <- sample.int(b, round(b/2))
+            a <- b + round((n-b)/2)
+          }else{
+            v <- sort(sample.int(n, round(n/2)))
+            a <- NULL
+          }
+        }else{
+          v <- sample.int(n, round(n/2))
+          if(into_bipartite){
+            a <- sample(v, round(n/4))
+            v <- setdiff(v, a)
+          }else a <- NULL
+        }
+
+        nwS <- get.inducedSubgraph(nw, v, a)
+        nwLS <- get.inducedSubgraph(nwL, v, a)
+
+        expect_equiv_nets(as.networkLite(nwS), nwLS)
+        expect_equiv_nets(as.networkLite(nwS), as.networkLite(to_network_networkLite(nwLS)))
       }
     }
   }
@@ -889,7 +927,7 @@ test_that("network and networkLite behave equivalently for basic access and muta
   }
 })
 
-test_that("add.vertices and add.edges with irregular attribute arguments behave equivalently for network and networkLite", {
+test_that("add.vertices and add.edges with irregular attribute arguments and vertex permutation behave equivalently for network and networkLite", {
   net_size <- 100
   bip_size <- 40
   edges_target <- net_size
@@ -982,6 +1020,15 @@ test_that("add.vertices and add.edges with irregular attribute arguments behave 
 
         expect_equiv_nets(as.networkLite(nw), nwL)
         expect_equiv_nets(as.networkLite(nw), as.networkLite(to_network_networkLite(nwL)))
+
+        P <- if(is.bipartite(nw)){
+               b <- nw %n% "bipartite"
+               c(sample.int(b), b + sample.int(network.size(nw) - b))
+             }else sample.int(network.size(nw))
+        nwP <- permute.vertexIDs((nw), P)
+        nwLP <- permute.vertexIDs((nwL), P)
+        expect_equiv_nets(as.networkLite(nwP), nwLP)
+        expect_equiv_nets(as.networkLite(nwP), as.networkLite(to_network_networkLite(nwLP)))
       }
     }
   }
@@ -1131,4 +1178,21 @@ test_that("as.edgelist with attrname", {
 
   expect_equal(nwL$el[["eattr"]], list(1, 2, NULL, NA, 3))
   expect_equal(el[,3], c(1, 2, NA, NA, 3))
+})
+
+test_that("in-place modification fails gracefully", {
+  nw <- network.initialize(10, directed = FALSE)
+  nwL0 <- nwL <- as.networkLite(nw)
+  expect_silent(set.vertex.attribute(identity(nwL), "a", 1))
+  expect_equal(nwL, nwL0) 
+})
+
+test_that("in-place modification with a complex LHS", {
+  nw <- network.initialize(10, directed = FALSE)
+  nwL <- as.networkLite(nw)
+  nwLl <- list(nwL, list(a = nwL, b = nwL))
+  set.vertex.attribute(nwLl[[2]]$a, "a", 1)
+  expect_equal(nwLl[[1]], nwL) 
+  expect_equal(nwLl[[2]]$b, nwL) 
+  expect_failure(expect_equal(nwLl[[2]]$a, nwL))
 })
